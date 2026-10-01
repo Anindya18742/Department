@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPT &amp; BAT Program Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f3f5f7; --surface:#ffffff; --fg:#17222e; --muted:#5b6876; --line:#dde3ea;
+    --accent:#0f5f73; --accent-soft:#e2eff2;
+    --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+    --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#0f151b; --surface:#172029; --fg:#e4eaf0; --muted:#95a3b1; --line:#2a3642;
+    --accent:#5cc0d6; --accent-soft:#16323a; color-scheme:dark}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5}
+  .wrap{max-width:960px;margin:0 auto;padding:48px 20px}
+  .eyebrow{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:12px;font-weight:600;color:var(--muted)}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,5vw,40px);line-height:1.1;margin:6px 0 10px}
+  .lede{color:var(--muted);margin:0 0 32px;max-width:62ch}
+  .links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  a.card{display:grid;gap:8px;align-content:start;padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+  a.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  a.card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .card h2{font-family:var(--display);font-size:20px;font-weight:600;margin:0}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .card .go{margin-top:6px;font-weight:600;font-size:14px;color:var(--accent)}
+  footer{margin-top:40px;font-size:13px;color:var(--muted)}
+  @media (max-width:720px){.links{grid-template-columns:minmax(0,1fr)}}
+  @media (prefers-reduced-motion:reduce){a.card{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">2026–2027 Catalog</div>
+  <h1>CPT &amp; BAT Program Tools</h1>
+  <p class="lede">Plan your classes, see how far along you are in a program, and find certificates that stack into an A.S. degree.</p>
+
+  <div class="links">
+    <!-- LINK 1: change href (file name or full URL), title and description -->
+    <a class="card" href="CPT_BAT_Program_Planner.html">
+      <h2>Program Planner</h2>
+      <p>Check off completed classes to see your percent complete and how your classes count toward other programs.</p>
+      <span class="go">Open planner →</span>
+    </a>
+
+    <!-- LINK 2 -->
+    <a class="card" href="Certificate_Stacking_Map.html">
+      <h2>Certificate Stacking Map</h2>
+      <p>See which certificates fit inside an A.S. degree and which courses are still needed to finish the degree.</p>
+      <span class="go">Open map →</span>
+    </a>
+
+    <!-- LINK 3 -->
+    <a class="card" href="CPT_Program_Course_Dashboard.html">
+      <h2>Program Course Dashboard</h2>
+      <p>Required courses, electives, prerequisites, lab fees, software and certifications for each program.</p>
+      <span class="go">Open dashboard →</span>
+    </a>
+  </div>
+
+  <footer>Source: CPT BAT Courses Offered 2026–2027 Catalog.</footer>
+</div>
+</body>
+</html>

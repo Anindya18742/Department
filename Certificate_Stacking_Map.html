@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Certificate Stacking Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: header + threshold, overlap matrix (certificates x A.S. degrees) on the left, nested "certificate inside degree" diagram for the chosen pair on the right */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --fg:#17222e; --muted:#5b6876; --line:#dde3ea; --track:#e8edf2;
+  --accent:#0f5f73; --accent-soft:#e2eff2; --elec:#0a7fb0; --elec-soft:#ddf1fa; --spec:#6b4fa0; --spec-soft:#ece6f6;
+  --out:#b4540a; --out-soft:#fcecdd;
+  --h1:#e6f1f4; --h2:#b9dbe4; --h3:#7fbccc; --h4:#3f93aa; --h5:#0f5f73;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --surface:#172029; --fg:#e4eaf0; --muted:#95a3b1; --line:#2a3642; --track:#223040;
+  --accent:#5cc0d6; --accent-soft:#16323a; --elec:#4cc3f0; --elec-soft:#133241; --spec:#b69be6; --spec-soft:#2a2240;
+  --out:#f0a15c; --out-soft:#3a2716;
+  --h1:#15262d; --h2:#1b3a45; --h3:#23586a; --h4:#2f7f96; --h5:#5cc0d6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#172029; --fg:#e4eaf0; --muted:#95a3b1; --line:#2a3642; --track:#223040;
+  --accent:#5cc0d6; --accent-soft:#16323a; --elec:#4cc3f0; --elec-soft:#133241; --spec:#b69be6; --spec-soft:#2a2240;
+  --out:#f0a15c; --out-soft:#3a2716;
+  --h1:#15262d; --h2:#1b3a45; --h3:#23586a; --h4:#2f7f96; --h5:#5cc0d6; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45;margin:0}
+.app{max-width:1440px;margin:0 auto;padding-inline:16px;padding-block:16px 32px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+header{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:end;justify-content:space-between}
+.eyebrow{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:11px;color:var(--muted);font-weight:600}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,3vw,30px);line-height:1.1;margin:2px 0 4px;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:78ch;font-size:13.5px}
+.ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
+.ctl label{font-weight:600;color:var(--muted)}
+.ctl output{font-family:var(--display);font-weight:700;font-size:18px;color:var(--accent);min-width:3ch;font-variant-numeric:tabular-nums}
+input[type=range]{accent-color:var(--accent);width:160px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:grid}
+.kpi b{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--accent)}
+.kpi span{font-size:12px;color:var(--muted)}
+.main{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0;display:grid;gap:10px}
+h2{font-family:var(--display);font-size:17px;font-weight:600;margin:0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+h2 small{font-family:var(--body);font-size:12px;font-weight:400;color:var(--muted)}
+.hint{margin:0;font-size:12.5px;color:var(--muted)}
+/* matrix */
+.mwrap{overflow-x:auto}
+table.m{border-collapse:separate;border-spacing:3px;font-variant-numeric:tabular-nums}
+table.m th{font-weight:500;font-size:11.5px;color:var(--muted);text-align:left;vertical-align:bottom}
+table.m thead th{padding:0 0 6px;vertical-align:bottom;text-align:center;width:44px}
+table.m thead th div{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;margin:0 auto;font-size:11.5px;line-height:1.25;text-align:left}
+table.m thead th div b{font-family:var(--mono);font-weight:500;color:var(--fg);margin-bottom:5px}
+table.m tbody th{padding-right:8px;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+table.m tbody th b{font-family:var(--mono);font-weight:500;color:var(--fg);margin-right:5px}
+td.c{width:44px;height:30px;text-align:center;border-radius:5px;font-size:11.5px;font-weight:600;cursor:pointer;border:2px solid transparent;transition:transform .1s}
+td.c.lo{background:transparent;color:var(--muted);font-weight:400;cursor:default}
+td.c.z{color:transparent}
+td.c.l1{background:var(--h2);color:var(--fg)} td.c.l2{background:var(--h3);color:var(--fg)} td.c.l3{background:var(--h4);color:#fff} td.c.l4{background:var(--h5);color:var(--surface)}
+td.c:not(.lo):hover{transform:scale(1.08)}
+td.c.sel{border-color:var(--out)}
+td.c:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.scale{display:flex;gap:10px;align-items:center;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.scale i{display:inline-block;width:22px;height:12px;border-radius:3px;vertical-align:middle;margin-right:4px}
+/* pair list */
+.pairs{display:grid;gap:4px}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:transparent;font:inherit;color:inherit;text-align:left}
+.pair:hover{border-color:var(--accent)}
+.pair.sel{border-color:var(--out);background:var(--out-soft)}
+.pair .n{font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pair .p{font-weight:700;font-variant-numeric:tabular-nums;font-size:13px}
+.pair .mini{grid-column:1/-1;height:6px;border-radius:3px;background:var(--track);display:flex;overflow:hidden}
+.mini i{display:block;height:100%}
+/* nested diagram */
+.pairtitle{display:grid;gap:2px}
+.pairtitle .big{font-family:var(--display);font-size:34px;font-weight:700;color:var(--accent);line-height:1}
+.degree{border:2px solid var(--accent);border-radius:16px;padding:12px;display:grid;gap:10px;position:relative;background:linear-gradient(var(--surface),var(--surface))}
+.dlabel{font-family:var(--display);font-weight:700;font-size:14px;color:var(--accent);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.dlabel span{font-family:var(--body);font-weight:400;font-size:12px;color:var(--muted)}
+.cert{border:2px dashed var(--out);background:var(--out-soft);border-radius:12px;padding:10px;display:grid;gap:8px}
+.clabel{font-family:var(--display);font-weight:700;font-size:13px;color:var(--out);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.clabel span{font-family:var(--body);font-weight:400;font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{display:inline-flex;min-width:0;gap:6px;align-items:baseline;border-radius:6px;padding:3px 8px;font-size:12px;border:1.5px solid var(--line);background:var(--surface);max-width:100%}
+.chip b{font-family:var(--mono);font-weight:500;font-size:11.5px;white-space:nowrap}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;color:var(--muted)}
+.chip.req{border-color:var(--accent)} .chip.req b{color:var(--accent)}
+.chip.el{border-color:var(--elec);border-style:dashed} .chip.el b{color:var(--elec)}
+.chip.sp{border-color:var(--spec);border-style:dotted} .chip.sp b{color:var(--spec)}
+.cert .chip{background:var(--surface)}
+.sub{font-size:11px;font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.outside{border:2px solid var(--out);border-radius:12px;padding:10px;display:grid;gap:8px;margin-left:24px;position:relative}
+.outside::before{content:"";position:absolute;left:-24px;top:50%;width:22px;border-top:2px dashed var(--out)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:var(--muted)}
+.legend span{display:inline-flex;gap:5px;align-items:center}
+.lg{width:18px;height:11px;border-radius:3px;border:1.5px solid}
+.path{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;font-size:13px;align-items:center}
+.path b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.stackbar{height:14px;border-radius:7px;display:flex;overflow:hidden;background:var(--track)}
+.stackbar i{display:block;height:100%}
+.panel>*,.degree>*,.cert>*,.outside>*{min-width:0}
+.degree,.cert,.outside{min-width:0}
+.pairs{max-height:420px;overflow:auto;padding-right:4px}
+.outside{margin-left:14px}.outside::before{left:-14px;width:12px}
+footer{font-size:11.5px;color:var(--muted)}
+@media (max-width:1000px){.main{grid-template-columns:minmax(0,1fr)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><div class="eyebrow">CPT &amp; BAT · 2026–2027 Catalog</div><h1>Certificate Stacking Map</h1>
+  <p class="lede">Which certificates sit inside an A.S. degree? Each percentage is the share of a certificate’s required courses that also count toward the degree (as a required course, an elective, or a specialization course). Pick a cell or a pathway to see the certificate drawn inside the degree.</p></div>
+  <div class="ctl"><label for="th">Show overlaps of at least</label><input type="range" id="th" min="30" max="100" step="5" value="60"><output id="thv" for="th">60%</output></div>
+</header>
+<div class="kpis" id="kpis"></div>
+<div class="main">
+  <div style="display:grid;gap:12px;min-width:0">
+    <section class="panel">
+      <h2>Overlap matrix <small>certificates × A.S. degrees</small></h2>
+      <div class="scale"><span><i style="background:var(--h2)"></i>below 70%</span><span><i style="background:var(--h3)"></i>70–84%</span><span><i style="background:var(--h4)"></i>85–99%</span><span><i style="background:var(--h5)"></i>100% (full subset)</span><span>faint number = below the threshold</span></div>
+      <div class="mwrap"><table class="m" id="matrix"></table></div>
+    </section>
+    <section class="panel">
+      <h2>Stackable pathways <small id="pcount"></small></h2>
+      <div class="legend"><span><i class="lg" style="background:var(--accent);border-color:var(--accent)"></i>counts as degree requirement</span><span><i class="lg" style="background:var(--elec);border-color:var(--elec)"></i>counts as elective</span><span><i class="lg" style="background:var(--spec);border-color:var(--spec)"></i>counts in a specialization</span><span><i class="lg" style="background:var(--out);border-color:var(--out)"></i>not in the degree</span></div>
+      <div class="pairs" id="pairs"></div>
+    </section>
+  </div>
+  <section class="panel" id="detail" style="position:sticky;top:12px"></section>
+</div>
+<footer>Source: CPT BAT Courses Offered 2026–2027 Catalog.xlsx (“CPT Program Courses” and “BAT Program Courses” tabs). Only certificate required courses (black X) are compared; certificate electives are not counted. General education courses are not in the sheet. “Still needed” lists the degree’s required courses the certificate does not cover, plus the chosen specialization for Engineering Technology.</footer>
+</div>
+<script>
+const D={"courses": {"EET1011C": {"code": "EET 1011C", "title": "Introduction to Electrical Circuits & Lab", "credits": "3", "offered": "FA/SP", "prereq": "Prereq. Or Coreq.MAT 1033 or MAT 1033A or Higher"}, "EET1021C": {"code": "EET 1021C", "title": "Advanced Electrical Circuits & Lab", "credits": "3", "offered": "FA/SP", "prereq": "EET 1011C and MAC 1105"}, "EET1607C": {"code": "EET 1607C", "title": "Electronics Assembly and Cabling & Lab", "credits": "3", "offered": "SP", "prereq": "None"}, "ETD2465C": {"code": "ETD 2465C", "title": "Tool Design & Lab", "credits": "3", "offered": "SP", "prereq": "None"}, "ETG2949": {"code": "ETG 2949", "title": "Internship in Engineering", "credits": "1-4", "offered": "FA/SP/SU", "prereq": "None"}, "ETI1701": {"code": "ETI 1701", "title": "Industrial Safety", "credits": "3", "offered": "FA", "prereq": "None"}, "ETM1010": {"code": "ETM 1010", "title": "Mechanical measurement and Instrumentation", "credits": "3", "offered": "SP/SU", "prereq": "None"}, "CAI1320": {"code": "CAI 1320", "title": "AI Application & Prompt Engineering", "credits": "3", "offered": "FA/SP", "prereq": "None"}, "CAI2010": {"code": "CAI 2010", "title": "Introduction to AI and Machine Learning with Python Programming", "credits": "3", "offered": "FA", "prereq": "COP1000"}, "GEB2430": {"code": "GEB 2430", "title": "AI, Business, Ethics, and Social Responsibility", "credits": "3", "offered": "FA/SP/SU", "prereq": "Prerequisite or Corequisite ENC 1101"}, "CAP2741": {"code": "CAP 2741", "title": "Data Visualization", "credits": "4", "offered": "SP", "prereq": "COP 2700"}, "CEN2002": {"code": "CEN 2002", "title": "Software Design and Development I", "credits": "3", "offered": "SP", "prereq": "Prereq. Or Coreq. (COP 2800 or COP 2360, or CGS 2820) and COP 2700"}, "CET1600": {"code": "CET 1600", "title": "Network Plus", "credits": "3", "offered": "FA/SP/SU", "prereq": "None"}, "CGS2100": {"code": "CGS 2100", "title": "Microcomputer Applications", "credits": "3", "offered": "FA/SP/SU", "prereq": "None"}, "CGS2820": {"code": "CGS 2820", "title": "Web Programming (JavaScript, Ajax, ASP.Net)", "credits": "3", "offered": "FA", "prereq": "COP 1000 and CTS 1851"}, "CIS2350": {"code": "CIS 2350", "title": "Principles of Information Assurance", "credits": "3", "offered": "FA/SP", "prereq": "CET 1600"}, "COP1000": {"code": "COP 1000", "title": "Principles of Computer Programming", "credits": "3", "offered": "FA/SP/SU", "prereq": "None"}, "COP2071": {"code": "COP 2071", "title": "Querying Database", "credits": "3", "offered": "FA", "prereq": "COP 1000"}, "COP2072": {"code": "COP 2072", "title": "Data Services", "credits": "3", "offered": "SP", "prereq": "COP 1000"}, "COP2360": {"code": "COP 2360", "title": "C# Programming", "credits": "3", "offered": "FA/SP/SU", "prereq": "COP 1000"}, "COP2700": {"code": "COP 2700", "title": "Introduction to Database Management", "credits": "3", "offered": "FA/SP/SU", "prereq": "None"}, "COP2800": {"code": "COP 2800", "title": "Computer Programming Java", "credits": "3", "offered": "FA/SP", "prereq": "COP 1000"}, "COP2949": {"code": "COP 2949", "title": "Internship in Computer Programming", "credits": "1-4", "offered": "FA/SP/SU", "prereq": "None"}, "CTS1851": {"code": "CTS 1851", "title": "Internet Web Foundations (HTML, CSS)", "credits": "3", "offered": "FA/SP/SU", "prereq": "None"}, "EGS1000": {"code": "EGS 1000", "title": "Professional Performance for Technicians", "credits": "3", "offered": "FA/SP/SU", "prereq": "None"}, "BCT1040": {"code": "BCT 1040", "title": "Bluprint Reading", "credits": "3", "offered": "FA", "prereq": "None"}, "ETD2320C": {"code": "ETD 2320C", "title": "Computer Aided Drafting I (AutoCAD) & Lab", "credits": "3", "offered": "FA/SP/SU", "prereq": "None"}, "ETD2340C": {"code": "ETD 2340C", "title": "Computer Aided Drafting II (AutoCAD) & Lab", "credits": "3", "offered": "SP/SU", "prereq": "ETD 2320C"}, "ETD2357C": {"code": "ETD 2357C", "title": "Inventor Solid Modeling & Lab", "credits": "3", "offered": "SP", "prereq": "None"}, "ETD2364C": {"code": "ETD 2364C", "title": "SolidWorks Solid Modeling & Lab", "credits": "3", "offered": "FA", "prereq": "None"}, "ETD2368C": {"code": "ETD 2368C", "title": "SolidWorks II & Lab", "credits": "3", "offered": "SP", "prereq": "Prerequisite ETD 2364C or ETD 2357C"}, "ETD2390C": {"code": "ETD 2390C", "title": "Introduction to Revit Architecture & Lab", "credits": "3", "offered": "FA", "prereq": "None"}, "ETI1110": {"code": "ETI 1110", "title": "Introduction to Quality Assurance", "credits": "3", "offered": "SU/FA", "prereq": "None"}, "CET2154": {"code": "CET 2154", "title": "A+ Computer Hardware & Software", "credits": "4", "offered": "FA/SP/SU", "prereq": "None"}, "CIS2949": {"code": "CIS 2949", "title": "Internship in Computer and Information Systems", "credits": "1-4", "offered": "FA/SP/SU", "prereq": "None"}, "CTS2214": {"code": "CTS 2214", "title": "Next-Gen Project Management: Human, AI & Automation", "credits": "3", "offered": "FA/SP", "prereq": "None"}, "CTS2353": {"code": "CTS 2353", "title": "Windows Server Hybrid Azure Cloud Services", "credits": "3", "offered": "FA/SP", "prereq": "CET 1600"}, "CTS2358": {"code": "CTS 2358", "title": "Windows Server Hybrid Azure Cloud Infrastructure", "credits": "3", "offered": "FA/SP", "prereq": "CET 1600"}, "CET2660": {"code": "CET 2660", "title": "Fundamentals of Cybersecurity Analysis", "credits": "3", "offered": "FA/SP", "prereq": "Corequisite CET 1600"}, "CNT2402": {"code": "CNT 2402", "title": "Penetration Testing", "credits": "3", "offered": "SP", "prereq": "CET 1600"}, "CNT2404": {"code": "CNT 2404", "title": "Intrusion Detection and Response", "credits": "3", "offered": "FA", "prereq": "CET 1600 and CIS 2350"}, "CTS2321": {"code": "CTS 2321", "title": "Linux Fundamentals", "credits": "3", "offered": "FA/SP", "prereq": "None"}, "CTS2375": {"code": "CTS 2375", "title": "Essentials of Cloud Computing", "credits": "3", "offered": "FA/SP", "prereq": "None"}, "CET1112C": {"code": "CET 1112C", "title": "Digital Fundamentals & Lab", "credits": "4", "offered": "FA/SP", "prereq": "Prereq. or Co-req. EET 1021C"}, "CET2123C": {"code": "CET 2123C", "title": "Microcomputer and Basic Digital Communications & Lab", "credits": "4", "offered": "SP", "prereq": "CET 1112C"}, "CET2850": {"code": "CET 2850", "title": "Wireless and Mobile Security", "credits": "3", "offered": "SP", "prereq": "CET 1600"}, "CET2949": {"code": "CET 2949", "title": "Internship in Computer Engineering Technology", "credits": "1-4", "offered": "FA/SP/SU", "prereq": "None"}, "COP2220": {"code": "COP 2220", "title": "Computer Programming C", "credits": "3", "offered": "FA/SP", "prereq": "COP 1000 or MAC 1105"}, "EET1141C": {"code": "EET 1141C", "title": "Analog Devices and Circuits & Lab", "credits": "4", "offered": "SP", "prereq": "Prequisite EET 1021C"}, "ETM2315C": {"code": "ETM 2315C", "title": "Hydraulic and Pneumatic Power and Control & lab", "credits": "3", "offered": "FA", "prereq": "None"}, "CTS2450": {"code": "CTS 2450", "title": "Business Intelligence", "credits": "3", "offered": "SP", "prereq": "COP 1000"}, "EET2949": {"code": "EET 2949", "title": "Internship in Electronics", "credits": "1-4", "offered": "FA/SP/SU", "prereq": "None"}, "ETS2542C": {"code": "ETS 2542C", "title": "Programmable Logic Controllers", "credits": "4", "offered": "SP", "prereq": "Prereq. MAC 1105, Corequisite CET 1112C"}, "ETD2371": {"code": "ETD 2371", "title": "Additive Manufacturing I", "credits": "3", "offered": "FA", "prereq": "None"}, "ETD2372": {"code": "ETD 2372", "title": "Additive Manufacturing II", "credits": "3", "offered": "SP", "prereq": "Prerequisite ETD 2371, ETD 2357C or ETD 2368C"}, "ETG2520": {"code": "ETG 2520", "title": "Statics and Strength of Materials", "credits": "3", "offered": "FA", "prereq": "Prereq. MGF 2130 or MAC 1105"}, "ETI1411": {"code": "ETI 1411", "title": "Survey of Manufacturing Processes", "credits": "3", "offered": "SP", "prereq": "Prereq. ETI 1420"}, "ETI1420": {"code": "ETI 1420", "title": "Manufacturing Processes and Materials", "credits": "3", "offered": "SP/SU", "prereq": "None"}, "ETI1843C": {"code": "ETI 1843C", "title": "Motors and Controls", "credits": "3", "offered": "FA", "prereq": "Prerequisite EET 1021C, Corequisite MAC 1105"}, "ETI2122": {"code": "ETI 2122", "title": "Product Testing and Quality Control", "credits": "3", "offered": "FA", "prereq": "ETI 1420 and ETI 1110"}, "ETI2950C": {"code": "ETI 2950C", "title": "Capstone Project", "credits": "4", "offered": "SP", "prereq": "Prereq. ETS 2540C and ETS 2542C, Corequisite ETI 1843C"}, "ETS2540C": {"code": "ETS 2540C", "title": "Fundamentals of Robotics and Automation", "credits": "3", "offered": "SP", "prereq": "Prereq. EET 1011C and MAC 1105"}, "CIS2121": {"code": "CIS 2121", "title": "Security Operation Management", "credits": "3", "offered": "SP", "prereq": "CET 1600 and CIS 2350"}, "ETI1851C": {"code": "ETI 1851C", "title": "Aerospace Mechanics and Mechanical Systems", "credits": "3", "offered": "SP", "prereq": ""}, "ETI1852C": {"code": "ETI 1852C", "title": "Aerospace Composites & Materials Testings", "credits": "3", "offered": "FA", "prereq": "ETI 1420 ?"}, "ETI2835C": {"code": "ETI 2835C", "title": "Aerospace Structural Fabrication", "credits": "3", "offered": "SP", "prereq": "ETI 1852C"}, "ETI2949": {"code": "ETI 2949", "title": "Cooperative Education Experience in Advanced Manufacturing Tech. 3", "credits": "1", "offered": "SU", "prereq": ""}, "BCN1251C": {"code": "BCN 1251C", "title": "Architectural Drawing I & Lab", "credits": "3", "offered": "FA/SP", "prereq": "Corequisite: IND 1233 for Interior Design Students Only"}, "BCN1253C": {"code": "BCN 1253C", "title": "Architectural Drawing II & Lab", "credits": "3", "offered": "SP", "prereq": "BCN 1251C and ETD 2320C"}, "EGN1111C": {"code": "EGN 1111C", "title": "Engineering Drawing & Lab", "credits": "3", "offered": "SU", "prereq": "None"}, "IND2500": {"code": "IND 2500", "title": "Professional Practices for the Design Industry", "credits": "3", "offered": "SP", "prereq": "None"}, "BCN2049": {"code": "BCN 2049", "title": "Sustainable Design & Construction", "credits": "3", "offered": "FA", "prereq": "None"}, "HHD1361": {"code": "HHD 1361", "title": "Practical Interior Applications", "credits": "3", "offered": "FA", "prereq": "None"}, "IND1233": {"code": "IND 1233", "title": "Studio I-Fundamentals of Interiors", "credits": "3", "offered": "FA/SP", "prereq": "None"}, "IND1300": {"code": "IND 1300", "title": "Graphics of Interior Design I", "credits": "3", "offered": "FA", "prereq": "None"}, "IND1432": {"code": "IND 1432", "title": "Lighting for Interior Design", "credits": "3", "offered": "SP", "prereq": "None"}, "IND1935": {"code": "IND 1935", "title": "Building and Barrier Free Codes", "credits": "3", "offered": "SP", "prereq": "None"}, "IND2408": {"code": "IND 2408", "title": "Specialized Software for Interior Design", "credits": "3", "offered": "SP", "prereq": "None"}, "IND2410": {"code": "IND 2410", "title": "Kitchen and Bath Design I", "credits": "3", "offered": "SU", "prereq": "IND 2408"}, "IND2411": {"code": "IND 2411", "title": "Materials and Estimating for Kitchen and Bath", "credits": "3", "offered": "SU", "prereq": "None"}, "IND2414": {"code": "IND 2414", "title": "Kitchen and Bath Design II", "credits": "3", "offered": "FA/SU 27", "prereq": "Prerequisite:IND 2408 and Prereq./Coreq.: IND 2410"}, "IND2949": {"code": "IND 2949", "title": "Internship in Interior Design", "credits": "1-3", "offered": "FA/SP/SU", "prereq": "None"}, "BCN1210": {"code": "BCN 1210", "title": "Materials and Processes", "credits": "3", "offered": "SP", "prereq": "None"}, "ETC2207C": {"code": "ETC 2207C", "title": "Construction Planning and Estimating & Lab", "credits": "3", "offered": "FA", "prereq": "BCN 1210"}, "ETC2245": {"code": "ETC 2245", "title": "Construction Methods", "credits": "3", "offered": "SP", "prereq": "None"}, "ETD2540C": {"code": "ETD 2540C", "title": "Civil Drafting and Surveying (CAD) & Lab", "credits": "3", "offered": "SP", "prereq": "ETD 2320C"}, "IND1211": {"code": "IND 1211", "title": "History of Architecture & Interiors", "credits": "3", "offered": "FA/SP", "prereq": "None"}, "IND1429": {"code": "IND 1429", "title": "Textiles for Commercial and Residential Interiors", "credits": "3", "offered": "SU", "prereq": "None"}, "IND2210": {"code": "IND 2210", "title": "Interior Design Studio II", "credits": "3", "offered": "FA", "prereq": "Prerequisite: IND 1233 and ETD 2320C"}, "IND2220": {"code": "IND 2220", "title": "Commercial Interior Design", "credits": "3", "offered": "FA", "prereq": "Prerequisite: IND 1233 and ETD 2320C"}}, "programs": [{"name": "Applied Technology Specialist, A.S. Cert.", "code": "082000", "dept": "CPT", "kind": "Certificate", "req": ["EET1011C", "EET1021C", "EET1607C", "ETD2465C", "ETG2949", "ETI1701", "ETM1010"], "el": [], "tracks": {}}, {"name": "Artificial Intelligence Awareness", "code": "090000", "dept": "CPT", "kind": "Certificate", "req": ["CAI1320", "GEB2430"], "el": ["CAI2010"], "tracks": {}}, {"name": "Software Developer, A.S. Cert.", "code": "093800", "dept": "CPT", "kind": "Certificate", "req": ["CAI1320", "CEN2002", "CET1600", "COP1000", "COP2072", "COP2360", "COP2700", "COP2800", "COP2949", "CTS1851", "EGS1000"], "el": ["CAI2010", "CAP2741", "CGS2100", "CGS2820", "CIS2350", "COP2071"], "tracks": {}}, {"name": "Computer-Aided Design & Drafting, A. S. Cert.", "code": "082100", "dept": "CPT", "kind": "Certificate", "req": ["BCT1040", "ETD2320C", "ETD2340C", "ETD2357C", "ETD2364C", "ETD2368C", "ETD2390C", "ETD2465C"], "el": [], "tracks": {}}, {"name": "Engineering Technology Support Specialist, A.S. Cert.", "code": "082300", "dept": "CPT", "kind": "Certificate", "req": ["EET1011C", "EET1607C", "EGS1000", "ETD2320C", "ETI1110", "ETI1701", "ETM1010"], "el": [], "tracks": {}}, {"name": "Information Technology Analysis, A.S. Cert.", "code": "090300", "dept": "CPT", "kind": "Certificate", "req": ["CAI2010", "CET1600", "CET2154", "CIS2350", "CIS2949", "CTS2214", "CTS2353", "CTS2358", "EGS1000"], "el": [], "tracks": {}}, {"name": "Network Server Administration, A.S. Cert.", "code": "090400", "dept": "CPT", "kind": "Certificate", "req": ["CET1600", "CIS2350", "CTS2353", "CTS2358", "CTS2375", "EGS1000"], "el": ["CET2660", "CNT2402", "CNT2404", "CTS2321"], "tracks": {}}, {"name": "Web Development Specialist, A.S. Cert.", "code": "090900", "dept": "CPT", "kind": "Certificate", "req": ["CEN2002", "CET1600", "CET2154", "CGS2820", "CIS2949", "COP1000", "COP2072", "COP2700", "CTS1851", "CTS2353", "CTS2375"], "el": ["CAI1320", "CAI2010", "CAP2741", "CTS2214", "EGS1000"], "tracks": {}}, {"name": "Computer Engineering Technology, A.S.", "code": "201300", "dept": "CPT", "kind": "A.S. degree", "req": ["CET1112C", "CET1600", "CET2123C", "CET2154", "CET2949", "COP1000", "COP2220", "COP2360", "COP2800", "EET1011C", "EET1021C", "EET1141C", "EET1607C", "EGS1000"], "el": ["CET2660", "CET2850", "CGS2100", "CIS2350", "CTS2321", "CTS2353", "CTS2358", "ETM2315C"], "tracks": {}}, {"name": "Computer Information Technology, A.S.", "code": "206700", "dept": "CPT", "kind": "A.S. degree", "req": ["CET1600", "CET2154", "CGS2100", "COP1000", "COP2700", "COP2949", "CTS1851", "CTS2214", "CTS2353", "CTS2358", "CTS2375", "EGS1000"], "el": ["CAI1320", "CAI2010", "CAP2741", "CEN2002", "CET1112C", "CGS2820", "CIS2350", "COP2071", "COP2072", "COP2360", "COP2800", "CTS2321", "EET1011C"], "tracks": {}}, {"name": "Software Development, A.S.", "code": "204700", "dept": "CPT", "kind": "A.S. degree", "req": ["CAI1320", "CAI2010", "CEN2002", "CET1600", "COP1000", "COP2072", "COP2360", "COP2700", "COP2800", "COP2949", "CTS1851", "CTS2375", "EGS1000"], "el": ["CAP2741", "CET1112C", "CET2660", "CGS2100", "CGS2820", "CIS2350", "COP2071", "COP2220", "CTS2214", "CTS2321", "CTS2450", "EET1011C"], "tracks": {}}, {"name": "Applied AI and Data Analytics, A.S.", "code": "223401", "dept": "CPT", "kind": "A.S. degree", "req": ["CAI2010", "CAP2741", "CET1600", "CIS2350", "COP1000", "COP2071", "COP2072", "COP2700", "COP2949", "CTS2353", "CTS2375", "CTS2450"], "el": ["CAI1320", "COP2360", "COP2800", "CTS2321", "CTS2358"], "tracks": {}}, {"name": "Electronics Engineering Technology, A.S.", "code": "200300", "dept": "CPT", "kind": "A.S. degree", "req": ["CET1112C", "CET2123C", "CGS2100", "COP1000", "EET1011C", "EET1021C", "EET1141C", "ETM2315C", "ETS2542C"], "el": ["COP2220", "COP2360", "COP2800", "CTS1851", "EET2949", "EGS1000"], "tracks": {}}, {"name": "Engineering Technology, A.S.", "code": "223200", "dept": "CPT", "kind": "A.S. degree", "req": ["EET1011C", "ETD2320C", "ETI1110", "ETI1420", "ETI1701", "ETM1010"], "el": [], "tracks": {"Digital Design and Modeling": ["BCT1040", "EGS1000", "ETD2340C", "ETD2357C", "ETD2364C", "ETD2368C", "ETD2390C", "ETD2465C", "ETG2520"], "Electronics": ["CET1112C", "CET2123C", "EET1021C", "EET1141C", "EET1607C", "EET2949", "EGS1000"], "Mechatronics": ["CET1112C", "CET2123C", "EET1021C", "EET1141C", "EET2949", "ETI1843C", "ETI2950C", "ETM2315C", "ETS2540C", "ETS2542C"], "Additive Manufacturing": ["ETD2364C", "ETD2368C", "ETD2371", "ETD2372", "ETD2465C", "ETI1411", "ETI2122"]}}, {"name": "Cybersecurity & Network Systems Technology, A.S.", "code": "200200", "dept": "CPT", "kind": "A.S. degree", "req": ["CET1600", "CET2154", "CET2660", "CIS2350", "CIS2949", "CNT2404", "COP1000", "CTS2214", "CTS2321", "CTS2353", "CTS2375", "EGS1000"], "el": ["CET1112C", "CET2850", "CIS2121", "CNT2402", "COP2800", "CTS2358", "EET1011C", "EET1607C"], "tracks": {}}, {"name": "Aerospace Technology, A.S.", "code": "227200", "dept": "CPT", "kind": "A.S. degree", "req": ["EET1011C", "EET1021C", "EET1141C", "EET1607C", "EGS1000", "ETI1110", "ETI1411", "ETI1420", "ETI1701", "ETI1851C", "ETI1852C", "ETI2835C", "ETM1010", "ETM2315C"], "el": ["BCT1040", "ETD2364C", "ETD2465C", "ETI2949"], "tracks": {}}, {"name": "AutoCAD Foundations (Architectural), A.S. Cert.", "code": "092700", "dept": "BAT", "kind": "Certificate", "req": ["BCN1251C", "BCN1253C", "ETD2320C", "ETD2340C", "ETG2949"], "el": [], "tracks": {}}, {"name": "AutoCAD Foundations (Engineering), A.S. Cert.", "code": "092800", "dept": "BAT", "kind": "Certificate", "req": ["ETD2320C", "ETD2357C", "ETD2364C", "ETD2465C", "ETG2949"], "el": [], "tracks": {}}, {"name": "Drafting & Design Technology, A.S. Cert.", "code": "092901", "dept": "BAT", "kind": "Certificate", "req": ["EGN1111C", "ETD2320C", "ETD2340C", "ETD2357C", "ETD2364C", "ETD2465C", "ETG2949", "IND2500"], "el": [], "tracks": {}}, {"name": "Interior Design Tech.-Kitchen & Bath Spec., A.S. Cert.", "code": "081600", "dept": "BAT", "kind": "Certificate", "req": ["BCN1251C", "BCN2049", "HHD1361", "IND1233", "IND1300", "IND1432", "IND1935", "IND2408", "IND2410", "IND2411", "IND2414", "IND2500"], "el": ["ETD2320C", "IND2949"], "tracks": {}}, {"name": "Architectural and Building Technology, A.S.", "code": "221900", "dept": "BAT", "kind": "A.S. degree", "req": ["BCN1210", "BCN1251C", "BCN1253C", "BCN2049", "BCT1040", "ETC2207C", "ETC2245", "ETD2320C", "ETD2340C", "ETD2390C", "ETD2540C", "ETG2520", "IND1935", "IND2500"], "el": ["EGN1111C", "ETG2949", "IND2408"], "tracks": {}}, {"name": "Drafting & Design Technology(CAD), A.S.", "code": "222001", "dept": "BAT", "kind": "A.S. degree", "req": ["BCN1251C", "BCT1040", "EGN1111C", "ETD2320C", "ETD2340C", "ETD2357C", "ETD2364C", "ETD2368C", "ETD2390C", "ETD2465C", "ETD2540C", "ETG2520", "ETG2949", "IND2500"], "el": ["BCN1210", "BCN1253C", "BCN2049", "CGS2100", "ETC2207C", "ETC2245", "IND1211", "IND1935"], "tracks": {}}, {"name": "Interior Design Technology, A.S.", "code": "207000", "dept": "BAT", "kind": "A.S. degree", "req": ["BCN1251C", "BCN1253C", "BCN2049", "ETD2320C", "ETD2340C", "HHD1361", "IND1211", "IND1233", "IND1300", "IND1429", "IND1432", "IND1935", "IND2210", "IND2220", "IND2408", "IND2500", "IND2949"], "el": ["BCN1210", "CGS2100", "ETD2390C", "IND2410", "IND2411", "IND2414"], "tracks": {}}]};
+const C=D.courses, P=D.programs;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const certs=P.filter(p=>p.kind==="Certificate"), degs=P.filter(p=>p.kind!=="Certificate");
+const trackOf=(a,x)=>Object.keys(a.tracks).filter(t=>a.tracks[t].includes(x));
+function roleIn(a,x){if(a.req.includes(x))return"req";if(a.el.includes(x))return"el";if(trackOf(a,x).length)return"sp";return"out"}
+function stat(c,a){const r={req:[],el:[],sp:[],out:[]};c.req.forEach(x=>r[roleIn(a,x)].push(x));const inn=r.req.length+r.el.length+r.sp.length;return{...r,inn,tot:c.req.length,pct:c.req.length?inn/c.req.length:0}}
+const S={};certs.forEach(c=>degs.forEach(a=>S[c.code+">"+a.code]=stat(c,a)));
+let th=0.6, sel=null, track={};
+const lvl=p=>p>=1?"l4":p>=.85?"l3":p>=.7?"l2":"l1";
+const ABBR={"201300":"Comp. Eng. Tech.","206700":"Comp. Info. Tech.","204700":"Software Dev.","223401":"Applied AI & Data","200300":"Electronics Eng. Tech.","223200":"Eng. Tech.","200200":"Cyber & Network Sys.","227200":"Aerospace Tech.","221900":"Arch. & Bldg. Tech.","222001":"Drafting & Design (CAD)","207000":"Interior Design Tech."};
+const short=n=>n.replace(/,?\s*A\.\s?S\.\s*Cert\.?/,"").replace(/,?\s*A\.S\.$/,"").trim();
+function pairsAbove(){const out=[];certs.forEach(c=>degs.forEach(a=>{const s=S[c.code+">"+a.code];if(s.pct>=th-1e-9)out.push({c,a,s})}));out.sort((x,y)=>y.s.pct-x.s.pct||x.c.name.localeCompare(y.c.name));return out}
+function draw(){
+  const ps=pairsAbove();
+  if(!sel||!ps.some(p=>p.c.code+">"+p.a.code===sel)) sel=ps.length?ps[0].c.code+">"+ps[0].a.code:null;
+  const cs=certs.filter(c=>ps.some(p=>p.c===c)), ds=degs.filter(a=>ps.some(p=>p.a===a));
+  const full=ps.filter(p=>p.s.pct>=1).length;
+  $("kpis").innerHTML=[[ps.length,"certificate → degree pathways"],[cs.length+" of "+certs.length,"certificates stack into a degree"],[full,"pathways where the certificate is a full subset"],[ds.length+" of "+degs.length,"A.S. degrees receive a certificate"]].map(([b,s])=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
+  const mc=certs, md=ds.length?ds:degs;
+  $("matrix").innerHTML=`<thead><tr><th></th>${md.map(a=>`<th title="${esc(a.name+" "+a.code)}"><div><b>${a.code}</b> ${esc(ABBR[a.code]||short(a.name))}</div></th>`).join("")}</tr></thead><tbody>`+
+    mc.map(c=>`<tr><th title="${esc(c.name+" "+c.code)}"><b>${c.code}</b>${esc(short(c.name))}</th>${md.map(a=>{const k=c.code+">"+a.code,s=S[k],p=Math.round(s.pct*100),on=s.pct>=th-1e-9;
+      return `<td class="c ${on?lvl(s.pct):"lo"} ${s.pct===0?"z":""} ${k===sel?"sel":""}" ${on?`tabindex="0" data-k="${k}"`:""} title="${esc(`${c.name} → ${a.name}\n${s.inn} of ${s.tot} certificate courses are in the degree`)}">${p}%</td>`}).join("")}</tr>`).join("")+"</tbody>";
+  $("pcount").textContent=`${ps.length} at ${Math.round(th*100)}% or more`;
+  $("pairs").innerHTML=ps.map(({c,a,s})=>{const k=c.code+">"+a.code,w=x=>x/s.tot*100;
+    return `<button type="button" class="pair ${k===sel?"sel":""}" data-k="${k}"><span class="n"><b>${esc(short(c.name))}</b> → ${esc(short(a.name))}</span><span class="p">${Math.round(s.pct*100)}%</span>
+    <span class="mini"><i style="width:${w(s.req.length)}%;background:var(--accent)"></i><i style="width:${w(s.el.length)}%;background:var(--elec)"></i><i style="width:${w(s.sp.length)}%;background:var(--spec)"></i><i style="width:${w(s.out.length)}%;background:var(--out)"></i></span></button>`}).join("")||`<p class="hint">No pathways at this threshold.</p>`;
+  detail();
+}
+const chip=(x,cls)=>`<span class="chip ${cls}" title="${esc(C[x].code+" "+C[x].title)}"><b>${esc(C[x].code)}</b><span>${esc(C[x].title)}</span></span>`;
+function detail(){
+  if(!sel){$("detail").innerHTML=`<h2>Certificate inside degree</h2><p class="hint">Lower the threshold to see pathways.</p>`;return}
+  const [cc,ac]=sel.split(">"), c=P.find(p=>p.code===cc), a=P.find(p=>p.code===ac), s=S[sel];
+  const tn=Object.keys(a.tracks); if(tn.length&&!tn.includes(track[ac])){ // pick the track that covers most cert courses
+    track[ac]=tn.map(t=>[t,c.req.filter(x=>a.tracks[t].includes(x)).length]).sort((x,y)=>y[1]-x[1])[0][0]}
+  const t=track[ac];
+  const need=[...a.req,...(t?a.tracks[t]:[])].filter(x=>!c.req.includes(x));
+  const degTot=a.req.length+(t?a.tracks[t].length:0);
+  const covered=degTot-need.length;
+  const inCert=[...s.req.map(x=>chip(x,"req")),...s.el.map(x=>chip(x,"el")),...s.sp.map(x=>{const tr=trackOf(a,x);return chip(x,"sp").replace("</span></span>",`</span></span>`)})].join("");
+  const spNote=s.sp.length?`<div class="hint">Specialization courses: ${s.sp.map(x=>`${esc(C[x].code)} (${esc(trackOf(a,x).join(", "))})`).join("; ")}</div>`:"";
+  const w=x=>x/s.tot*100;
+  $("detail").innerHTML=`
+  <div class="pairtitle"><div class="eyebrow">Certificate inside degree</div>
+    <h2>${esc(c.name)} ${c.code} <small>→</small> ${esc(a.name)} ${a.code}</h2></div>
+  <div class="path">
+    <b style="color:var(--accent)">${Math.round(s.pct*100)}%</b><span>of the certificate’s ${s.tot} required courses count toward the degree (${s.inn} of ${s.tot})</span>
+    <b>${covered}/${degTot}</b><span>degree program courses${t?` (core + ${esc(t)})`:""} already done once the certificate is finished</span>
+    <b style="color:var(--out)">${need.length}</b><span>more program courses to finish the A.S. after the certificate</span>
+  </div>
+  <div class="stackbar" title="Certificate courses by how they count in the degree"><i style="width:${w(s.req.length)}%;background:var(--accent)"></i><i style="width:${w(s.el.length)}%;background:var(--elec)"></i><i style="width:${w(s.sp.length)}%;background:var(--spec)"></i><i style="width:${w(s.out.length)}%;background:var(--out)"></i></div>
+  ${tn.length?`<label class="ctl" style="font-size:12.5px"><span style="font-weight:600;color:var(--muted)">Specialization for “still needed”</span><select id="trk" style="font:inherit;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg)">${tn.map(x=>`<option ${x===t?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`:""}
+  <div class="degree">
+    <div class="dlabel">${esc(a.name)} ${a.code}<span>A.S. degree · ${a.req.length} required${a.el.length?` · ${a.el.length} electives`:""}${tn.length?` · ${tn.length} specializations`:""}</span></div>
+    <div class="cert">
+      <div class="clabel">${esc(c.name)} ${c.code}<span>${s.inn} certificate courses inside this degree</span></div>
+      <div class="chips">${inCert||`<span class="hint">None</span>`}</div>
+      ${spNote}
+    </div>
+    <div class="sub">Still needed for the degree (${need.length})</div>
+    <div class="chips">${need.map(x=>chip(x,"req")).join("")||`<span class="hint">Nothing. The certificate covers every program course.</span>`}</div>
+  </div>
+  ${s.out.length?`<div class="outside"><div class="clabel">Certificate courses outside this degree<span>${s.out.length} would not count</span></div><div class="chips">${s.out.map(x=>chip(x,"")).join("")}</div></div>`:""}
+  <div class="legend"><span><i class="lg" style="border-color:var(--accent)"></i>degree requirement</span><span><i class="lg" style="border-color:var(--elec);border-style:dashed"></i>degree elective</span><span><i class="lg" style="border-color:var(--spec);border-style:dotted"></i>specialization course</span><span><i class="lg" style="border-color:var(--out);background:var(--out-soft);border-style:dashed"></i>certificate</span></div>`;
+  const tk=$("trk"); if(tk) tk.onchange=e=>{track[ac]=e.target.value;detail()};
+  try{history.replaceState(null,"","#"+cc+"-"+ac)}catch(e){}
+}
+document.addEventListener("click",e=>{const el=e.target.closest("[data-k]");if(el){sel=el.dataset.k;draw()}});
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("td[data-k]")){e.preventDefault();sel=e.target.dataset.k;draw()}});
+$("th").addEventListener("input",e=>{th=e.target.value/100;$("thv").textContent=e.target.value+"%";draw()});
+const h=(location.hash||"").slice(1).split("-"); if(h.length===2) sel=h[0]+">"+h[1];
+draw();
+</script>
+
+</body>
+</html>
